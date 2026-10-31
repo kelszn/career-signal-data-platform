@@ -23,7 +23,7 @@ jobs_keys = first_job.keys()
 for k, v in first_job.items():
     print(k, "\t", type(v))
 
-
+print(response_data.keys())
 
 print("jsonLD:")
 print(json.dumps(first_job["jsonLD"], indent=4))
@@ -150,3 +150,5 @@ diff = page_1_ids.difference(page_2_ids)
 dup = page_1_ids.intersection(page_2_ids)
 print(len(diff))
 print(dup)
+
+print(type(response_data.keys()))

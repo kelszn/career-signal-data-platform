@@ -35,6 +35,8 @@ HEADERS = {
 }
 
 
+
+
 QUERY_PARAMS = {
     "countryCode" : "de",
     "title" : '"data engineer"',
@@ -87,13 +89,18 @@ while current_cursor and (batch_number <= max_batches):
     resp_data = response.json()
     print(json.dumps(resp_data, indent=4))
 
+    if "result" not in resp_data:
+        print(f"{batch_number:03} response has an unexpected shape")
+        run_failed = True
+        break
+
+
     #dynamic path
     path = f"/Users/kelszn/Documents/Career_Signal/data/raw/Techmap_batch{batch_number:03}.json"
 
     #write json to file path
     with open(path, "w") as file_path:
         json.dump(resp_data, file_path, indent=4)
-    print(batch_number)
     print(len(resp_data["result"]))
 
     next_cursor = resp_data.get("nextCursor")
