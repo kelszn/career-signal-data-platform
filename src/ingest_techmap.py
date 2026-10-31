@@ -46,7 +46,7 @@ QUERY_PARAMS = {
 }
 
 current_cursor = "true"
-max_batches = 3
+max_batches = 1
 batch_number = 1
 stopped_reason = None
 
