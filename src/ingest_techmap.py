@@ -48,7 +48,7 @@ QUERY_PARAMS = {
 current_cursor = "true"
 max_batches = 3
 batch_number = 1
-run_failed = False
+stopped_reason = None
 
 MAX_ATTEMPTS = 2
 RETRY_WAIT_SECONDS = 3
@@ -77,12 +77,12 @@ while current_cursor and (batch_number <= max_batches):
                 
     if response is None :
         print(f'Batch_{batch_number:03} failed after {MAX_ATTEMPTS} attempts to retry')
-        run_failed = True
+        stopped_reason = f"No answer after {MAX_ATTEMPTS} attempts"
         break
     if response.status_code != 200:
         print(response.headers)
         print(f'Batch{batch_number:03}: {response.status_code}')
-        run_failed = True
+        stopped_reason = f"Unsuccessful status code : {response.status_code}"
         break
     
     #parse json payload
@@ -91,7 +91,7 @@ while current_cursor and (batch_number <= max_batches):
 
     if "result" not in resp_data:
         print(f"{batch_number:03} response has an unexpected shape")
-        run_failed = True
+        stopped_reason = "unexpected response shape"
         break
 
 
@@ -110,8 +110,8 @@ while current_cursor and (batch_number <= max_batches):
 
     if current_cursor and batch_number<= max_batches:
         time.sleep(1)
-if run_failed:
-    print(f"run stopped early: request failed on batch{batch_number:03}")
+if stopped_reason is not None:
+    print(f"run stopped early: request stopped on batch{batch_number:03} -- {stopped_reason}")
 elif  not current_cursor:
     print("API traversal finished naturally")
 
