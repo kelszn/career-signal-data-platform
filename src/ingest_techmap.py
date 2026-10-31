@@ -3,7 +3,10 @@ import requests # for HTTP requests
 from dotenv import load_dotenv # to load environment variables to python environment
 import os 
 import json
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, Timeout
+
+
+
 # load environment variables
 load_dotenv()
 
@@ -31,6 +34,7 @@ HEADERS = {
     "X-RapidAPI-Host": API_HOST
 }
 
+
 QUERY_PARAMS = {
     "countryCode" : "de",
     "title" : '"data engineer"',
@@ -46,6 +50,7 @@ run_failed = False
 
 MAX_ATTEMPTS = 2
 RETRY_WAIT_SECONDS = 3
+TIMEOUT_SECONDS = 30 
 
 
 while current_cursor and (batch_number <= max_batches):
@@ -58,10 +63,11 @@ while current_cursor and (batch_number <= max_batches):
     while attempts <= MAX_ATTEMPTS:
 
         try:
-            response = requests.get(URL, params=reqst_params, headers=HEADERS )
+            response = requests.get(URL, params=reqst_params, headers=HEADERS , timeout=TIMEOUT_SECONDS)
             break
-        except ConnectionError:
-            print(f"connection failed on Batch{batch_number:03}")
+        except (ConnectionError, Timeout)as error:
+
+            print(f"connection failed on Batch{batch_number:03}, {type(error).__name__}")
             attempts +=1    
             if attempts <= MAX_ATTEMPTS:
                 print("Retrying Connection...")
@@ -76,11 +82,15 @@ while current_cursor and (batch_number <= max_batches):
         print(f'Batch{batch_number:03}: {response.status_code}')
         run_failed = True
         break
+    
+    #parse json payload
     resp_data = response.json()
     print(json.dumps(resp_data, indent=4))
 
+    #dynamic path
     path = f"/Users/kelszn/Documents/Career_Signal/data/raw/Techmap_batch{batch_number:03}.json"
 
+    #write json to file path
     with open(path, "w") as file_path:
         json.dump(resp_data, file_path, indent=4)
     print(batch_number)
