@@ -3,7 +3,7 @@ import requests # for HTTP requests
 from dotenv import load_dotenv # to load environment variables to python environment
 import os 
 import json
-
+from requests.exceptions import ConnectionError
 # load environment variables
 load_dotenv()
 
@@ -24,7 +24,7 @@ Search_Endpoint = "/api/v2/jobs/search"
 count_endpoint = "/api/v2/jobs/count"
 
 URL = Base_url + Search_Endpoint
-print(URL)
+
 
 HEADERS = {
     "X-RapidAPI-Key" : API_KEY,
@@ -42,16 +42,40 @@ QUERY_PARAMS = {
 current_cursor = "true"
 max_batches = 3
 batch_number = 1
+run_failed = False
+
+MAX_ATTEMPTS = 2
+RETRY_WAIT_SECONDS = 3
+
 
 while current_cursor and (batch_number <= max_batches):
     reqst_params = QUERY_PARAMS.copy()
     reqst_params['cursor'] = current_cursor
-    response = requests.get(URL, params=reqst_params, headers=HEADERS )
 
-    if response.status_code != 200:
-        print(response.status_code)
+    response = None
+    attempts = 1
+
+    while attempts <= MAX_ATTEMPTS:
+
+        try:
+            response = requests.get(URL, params=reqst_params, headers=HEADERS )
+            break
+        except ConnectionError:
+            print(f"connection failed on Batch{batch_number:03}")
+            attempts +=1    
+            if attempts <= MAX_ATTEMPTS:
+                print("Retrying Connection...")
+                time.sleep(RETRY_WAIT_SECONDS)
+                
+    if response is None :
+        print(f'Batch_{batch_number:03} failed after {MAX_ATTEMPTS} attempts to retry')
+        run_failed = True
         break
-
+    if response.status_code != 200:
+        print(response.headers)
+        print(f'Batch{batch_number:03}: {response.status_code}')
+        run_failed = True
+        break
     resp_data = response.json()
     print(json.dumps(resp_data, indent=4))
 
@@ -69,8 +93,9 @@ while current_cursor and (batch_number <= max_batches):
 
     if current_cursor and batch_number<= max_batches:
         time.sleep(1)
-
-if not current_cursor:
+if run_failed:
+    print(f"run stopped early: request failed on batch{batch_number:03}")
+elif  not current_cursor:
     print("API traversal finished naturally")
 
 elif batch_number > max_batches:
